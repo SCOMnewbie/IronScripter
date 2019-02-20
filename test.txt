@@ -1,0 +1,9 @@
+Feature Name : LegacyComponents
+State : Disabled
+
+Feature Name : DirectPlay
+State : Enabled
+
+Feature Name : SimpleTCP
+State : Joker
+

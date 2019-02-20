@@ -8,20 +8,56 @@
 
 #" 42,Answer" | Select-String -Pattern '^\s+(\d+),(.+)'
 
-
-$Text =@"
+<#
+Set-Content test.txt -value @"
 Feature Name : LegacyComponents
 State : Disabled
 
 Feature Name : DirectPlay
-State : Disabled
+State : Enabled
 
 Feature Name : SimpleTCP
-State : Disabled
+State : Joker
 
 "@
 
-$Text | Select-String -Pattern '^(Feature Name :.+$)|^(State :.+$)' | 
-ForEach-Object{
-    $Feature, $State = $_.Matches[0].Groups[1..2].value
+Get-ChildItem test.txt | 
+    Select-String -Pattern "Feature Name :\s(\w+)|State :\s(\w+)" |
+    Foreach-Object {
+    $Feature, $State = $_.Matches[0].Groups[1..4].Value   # this is a common way of getting the groups of a call to select-string
+    [PSCustomObject] @{
+        FirstName        = $first
+        LastName         = $last
+        Handle           = $handle
+        TwitterFollowers = [int] $followers
+    }
 }
+#>
+
+& {Dism.exe /online /Get-Features} | Select-Object -Skip 8 | Select-String -Pattern "Feature Name :\s(.+)|State :\s(.+)" | 
+    Foreach-Object {
+    $Feature, $State = $_.Matches[0].Groups[1..2].Value
+    [PSCustomObject] @{
+        Feature = $Feature
+        State   = $State
+    }
+}
+$Baseline.count
+
+$Baseline.matches[0].groups[1].value
+
+$Text = & {Dism.exe /online /Get-Features} | Select-Object -Skip 8 | Select-String -Pattern "Feature Name :\s(\w+)|State :\s(\w+)"
+<#
+PS E:\GitHub\Cloud\IronScripter> $var.matches[0].groups[1].value
+LegacyComponents
+PS E:\GitHub\Cloud\IronScripter> $var.matches[1].groups[2].value
+Disabled
+PS E:\GitHub\Cloud\IronScripter> $var.matches[2].groups[1].value
+DirectPlay
+PS E:\GitHub\Cloud\IronScripter> $var.matches[3].groups[2].value
+Enabled
+PS E:\GitHub\Cloud\IronScripter> $var.matches[4].groups[1].value
+SimpleTCP
+PS E:\GitHub\Cloud\IronScripter> $var.matches[5].groups[2].value
+
+#>
