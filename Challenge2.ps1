@@ -1,4 +1,5 @@
-﻿return "Hi there !"
+﻿
+return "Hi there !"
 
 #region Generate local Baseline
 
@@ -18,7 +19,6 @@ for ($i = 0; $i -lt $text.count; $i = $i + 2) {
         State  = $Name
     }
 
-    Write-output "$Feature, $Name"
     $Baseline += $Obj
     
 }
@@ -27,7 +27,8 @@ for ($i = 0; $i -lt $text.count; $i = $i + 2) {
 
 #Now that we jhave the baseline, let's push it to the remote device through winrm
 
-$RemoteComputerName
+
+$RemoteComputerName = "JEA-01"
 try{
     $RemoteSession = New-PSSession -ComputerName $RemoteComputerName -ea stop
 }
@@ -36,8 +37,10 @@ catch{
 }
 
 #Let's start by add features
+
+
 Foreach($Item in $Baseline){
-    Invoke-Command -Session $RemoteComputerName -Scriptblock {
+    Invoke-Command -Session $RemoteSession -Scriptblock {
         param ($Feature, $State)
         switch ($State){
             "Disabled" {Dism /online /Disable-Feature /FeatureName:$Feature}
@@ -45,5 +48,8 @@ Foreach($Item in $Baseline){
             Default {Write-warning "Hey we miss something! Check Feature: $Feature with the state: $State"}
 
         }
-    } -Args $Item.feature, $Item.State
+    } -Args $Item.FeatureName, $Item.State
 }
+
+
+Get-PSSession | Remove-PSSession
