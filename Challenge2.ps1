@@ -1,55 +1,71 @@
 ﻿
-return "Hi there !"
+function Get-InstalledFeature
+{
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    Param
+    (
+        [Parameter(Mandatory=$false,
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
+        $ComputerName
 
-#region Generate local Baseline
+    )
+    
+    $sb = {Dism.exe /online /Get-Features}
 
-$sb = {Dism.exe /online /Get-Features}
-$text = Invoke-Command -ScriptBlock $sb
-#Remove the header and the footer we don't want. I suck in regex but it does what I want lol.
-$text = $text | Select-String -Pattern "Feature Name :\s(\w+)|State :\s(\w+)"
-#Let's put the feature with the state on the same line (it will help for the match after)
+    if($ComputerName){
+        $text = Invoke-Command -ComputerName $ComputerName -ScriptBlock $sb
+    }
+    else{
+        $text = Invoke-Command -ScriptBlock $sb
+    }
+    
+    #Remove the header and the footer we don't want. I suck in regex but it does what I want lol.
+    $text = $text | Select-String -Pattern "Feature Name :\s(\w+)|State :\s(\w+)"
+    #Let's put the feature with the state on the same line (it will help for the match after)
 
-$baseline = @()
-for ($i = 0; $i -lt $text.count; $i = $i + 2) {
-    $Feature = $text[$i].Tostring().replace('Feature Name : ', '')
-    $Name = $text[$i + 1].ToString().replace('State : ', '')
+    $FeaturesInstallationState = @()
+    for ($i = 0; $i -lt $text.count; $i = $i + 2) {
+        $Feature = $text[$i].Tostring().replace('Feature Name : ', '')
+        $Name = $text[$i + 1].ToString().replace('State : ', '')
 
-    $Obj = [PSCustomObject] @{
-        FeatureName = $Feature
-        State  = $Name
+        $Obj = [PSCustomObject] @{
+            FeatureName = $Feature
+            State  = $Name
+        }
+
+        $FeaturesInstallationState += $Obj
+    
+    }
+    
+    return $FeaturesInstallationState
+}
+
+$Baseline = Get-InstalledFeature
+$remoteStatus = Get-InstalledFeature -ComputerName JEA-01
+
+#We just take one side
+$Differences = Compare-Object -ReferenceObject $baseline -DifferenceObject $remoteStatus -Property FeatureName,State | Where-Object {$_.SideIndicator -eq '=>'}
+
+Foreach($Difference in $Differences){
+    if($Difference.State -eq "Disabled"){
+        $Action = 'Enable'
+    }
+    else{
+        $Action = 'Disable'
     }
 
-    $Baseline += $Obj
-    
+    Invoke-Command -ComputerName JEA-01 -Scriptblock {
+        param ($Feature, $Action)
+        if($Action -eq 'Disable'){
+            Dism /online /$Action-Feature /FeatureName:$Feature /quiet
+        }#Disabling
+        else{
+            Dism /online /$Action-Feature /FeatureName:$Feature /quiet /all
+        }#Installing
+        
+    } -Args $Difference.FeatureName, $Action
 }
 
-#endregion
-
-#Now that we jhave the baseline, let's push it to the remote device through winrm
-
-
-$RemoteComputerName = "JEA-01"
-try{
-    $RemoteSession = New-PSSession -ComputerName $RemoteComputerName -ea stop
-}
-catch{
-    Write-Error "Unable to connect on machine: $RemoteComputerName"
-}
-
-#Let's start by add features
-
-
-Foreach($Item in $Baseline){
-    Invoke-Command -Session $RemoteSession -Scriptblock {
-        param ($Feature, $State)
-        switch ($State){
-            "Disabled" {Dism /online /Disable-Feature /FeatureName:$Feature}
-            "Enabled" {Dism /online /Enable-Feature /FeatureName:$Feature}
-            Default {Write-warning "Hey we miss something! Check Feature: $Feature with the state: $State"}
-
-        }
-    } -Args $Item.FeatureName, $Item.State
-}
-
-
-Get-PSSession | Remove-PSSession
+#Works but has some issue when the machine will reboot. Can we try workflow instead?
