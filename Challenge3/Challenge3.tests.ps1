@@ -15,25 +15,33 @@ ComputerName : S4
 
 
 #>
+$Dir = "C:\Github\IronScripter\Challenge3"
+Set-Location $Dir
+#Remove-Item -Path Function:\Get-DiskInfo -Force -ErrorAction SilentlyContinue
+. "$dir\Challenge3.ps1"
 
 Describe "Function: Get-DiskInfo" {
-    BeforeAll {
-        cd "C:\Github\IronScripter\Challenge3"
-        Remove-Item -Path Function:\Get-DiskInfo -Force -ErrorAction SilentlyContinue
-        . .\Challenge3.ps1
-    }
+
+    
 
     Context 'Parameters...' {
-        it 'ComputerName properly defined' {
+        
+        
+        $Command = get-command Get-DiskInfo
+
+
+        it 'ComputerName should be an array' {
             #Test without param, with array, with pipeline with propertyname
-            $ProjectNameMG.Name | Should -BeExactly $ProjectName  
+            $command.Parameters.Computername.ParameterType.BaseType.Name | Should -Be 'Array'  
         }
 
-        it 'Drive properly defined' {
+        it 'Drive K should generate error' {
             #Test without param, with C, with e, with H, z
-            $ProjectNameMG.Name | Should -BeExactly $ProjectName  
+            $ProjectNameMG.Name | Should Throw  
         }
     }
+
+    <#
 
     Context 'Test function with good parameters...' {
         #Should return an object with all properties
@@ -51,6 +59,8 @@ Describe "Function: Get-DiskInfo" {
             $ProjectNameSub | Should -Not -BeNullOrEmpty 
         }    
     }
+
+    
 
     Context 'Test function with bad drive...' {
         
@@ -108,4 +118,5 @@ Describe "Function: Get-DiskInfo" {
             $ProjectNameSub | Should -Not -BeNullOrEmpty 
         }    
     }
+    #>
 }
