@@ -24,8 +24,7 @@ Function Get-DiskInfo {
     [cmdletbinding()]
     Param(
         [Parameter(Mandatory = $false,
-                    ValueFromPipeline = $true,
-                    ValueFromPipelineByPropertyName=$true)]
+                    ValueFromPipeline = $true)]
         [string[]]$Computername = $env:COMPUTERNAME,
         [ValidatePattern("[A-G|a-g]")]
         [string]$Drive = "C",
@@ -36,6 +35,8 @@ Function Get-DiskInfo {
         Write-Verbose "Starting $($myinvocation.mycommand)"
         $filename = "{0}_DiskInfo_Errors.txt" -f (Get-Date -format "yyyyMMddhhmm")
         $errorLog = Join-Path -path $LogPath -ChildPath $filename
+
+        $Drive = $($Drive.toUpper())
     }
     Process {
         foreach ($computer in $computername) {

@@ -15,29 +15,41 @@ ComputerName : S4
 
 
 #>
-$Dir = "C:\Github\IronScripter\Challenge3"
+#$Dir = "C:\Github\IronScripter\Challenge3"
+$Dir = "E:\GitHub\Cloud\IronScripter\Challenge3"
+
 Set-Location $Dir
 #Remove-Item -Path Function:\Get-DiskInfo -Force -ErrorAction SilentlyContinue
 . "$dir\Challenge3.ps1"
 
 Describe "Function: Get-DiskInfo" {
-
-    
-
     Context 'Parameters...' {
-        
-        
+  
         $Command = get-command Get-DiskInfo
-
 
         it 'ComputerName should be an array' {
             #Test without param, with array, with pipeline with propertyname
             $command.Parameters.Computername.ParameterType.BaseType.Name | Should -Be 'Array'  
         }
 
+        it 'ComputerName should accept pipeline' {
+            #Test without param, with array, with pipeline with propertyname
+            {"localhost","$env:COMPUTERNAME" | Get-DiskInfo} | Should -not -Be $null  
+        }
+
         it 'Drive K should generate error' {
             #Test without param, with C, with e, with H, z
-            $ProjectNameMG.Name | Should Throw  
+            {Get-DiskInfo -Drive 'K'} | Should -Throw   
+        }
+
+        it 'Drive u should generate error' {
+            #Test without param, with C, with e, with H, z
+            {Get-DiskInfo -Drive 'u'} | Should -Throw   
+        }
+
+        it 'Drive e should work' {
+            #Test without param, with C, with e, with H, z
+            {Get-DiskInfo -Drive 'e'} | Should -not -Be $null   
         }
     }
 
