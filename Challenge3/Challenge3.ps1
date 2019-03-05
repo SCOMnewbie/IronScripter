@@ -57,7 +57,7 @@ Function Get-DiskInfo {
                 @{Name = "Computername";Expression = {$($_.PSComputername.toUpper())}} 
             }
             catch {
-                Add-Content -path $errorlog -Value "[$(Get-Date)] Failed to get disk data for drive $drive from $computername"
+                Add-Content -path $errorlog -Value "[$(Get-Date)] Failed to get disk data for drive $drive from $computername" -
                 Add-Content -path $errorlog -Value "[$(Get-Date)] $($_.exception.message)"
                 $newErrors = $True
             }
