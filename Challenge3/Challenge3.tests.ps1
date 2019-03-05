@@ -16,11 +16,10 @@ ComputerName : S4
 
 #>
 $Dir = "C:\Github\IronScripter\Challenge3"
-#$Dir = "E:\GitHub\Cloud\IronScripter\Challenge3"
+#$Dir = "E:\GitHub\Cloud\IronScripter\Challenge3
 
-#Regex to validat the date of the log
-$Regex = "(2[0-1][0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])(0[1-9]|1[0-9]|2[0-3])(0[1-9]|[1-5][0-9]))_DiskInfo_Errors.txt"
-
+$PreviousWarningPreference = $WarningPreference
+$WarningPreference = 'SilentlyContinue'
 
 Set-Location $Dir
 #Remove-Item -Path Function:\Get-DiskInfo -Force -ErrorAction SilentlyContinue
@@ -57,7 +56,7 @@ Describe "Function: Get-DiskInfo" {
         }
     }
 
-    Context 'Test function properties' {
+    Context 'Properties...' {
         #Should return an object with all properties
         #Should not generate a logfile
 
@@ -85,29 +84,23 @@ Describe "Function: Get-DiskInfo" {
        #After context exist? >> remove logs after test
        BeforeAll {
             $filename = "{0}_DiskInfo_Errors.txt" -f (Get-Date -format "yyyyMMddhhmm")
-            $errorLog = Join-Path -path $Dir -ChildPath $filename 
        } 
+
 
        it "Error should not be generated" {
             #Should not throw
-            $diskinfo = Get-diskInfo
-            $actual=(Dir . )[0].FullName
-            Remove-Item $actual
-            $actual | Should -Exist # Test will fail    
-                      
-
+            $errorLog = Join-Path -path $Dir -ChildPath $filename 
+            Get-diskInfo -LogPath $Dir | out-null
+            Test-Path -Path $errorLog | Should -Be $false    
         }
         
-        it 'Test Get-DiskInfo property...' {
-            $SubName = "Sub-$ProjectName-Dev"
-            $ProjectNameSub = $MGInfos | Where-Object {($_.type -eq "Subscription") -AND ($_.Name -eq $SubName)}
-            $($ProjectNameSub.Name) | Should -BeExactly $SubName 
-        }
-
-        it "Is Subscription Dev exist under MG: $ProjectName" {
-            $SubName = "Sub-$ProjectName-Dev"
-            $ProjectNameSub = $MGInfos | Where-Object {($_.ParentName -eq $ProjectName) -AND ($_.Name -eq $SubName)}
-            $ProjectNameSub | Should -Not -BeNullOrEmpty 
+        it 'Error should be generated' {
+            $errorLog = Join-Path -path $Dir -ChildPath $filename 
+            Get-diskInfo -LogPath $Dir -Computername localblahhost
+            Test-Path -Path $errorLog | Should -Be $true 
+            Remove-Item $errorLog
         }    
+
+        $WarningPreference = $PreviousWarningPreference
     }
 }

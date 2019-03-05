@@ -40,15 +40,15 @@ Function Get-DiskInfo {
     }
     Process {
         foreach ($computer in $computername) {
-            Write-Verbose "Try to connect on computer: $computer"
-            $CimSession = New-CimSession -ComputerName $computer -ErrorAction SilentlyContinue
-            if(! $Computername){
-                write-warning "Unable to connect on computer: $computer"
-                break
-            }
 
             Write-Verbose "Getting disk information from $computer for drive $($drive.toUpper())"
             try {
+
+                Write-Verbose "Try to connect on computer: $computer"
+                $CimSession = New-CimSession -ComputerName $computer -ErrorAction SilentlyContinue
+                if(! $CimSession){
+                    write-warning "Unable to connect on computer: $computer"
+                }
                 $data = Get-Volume -DriveLetter $drive -CimSession $CimSession -ErrorAction stop| Select  DriveLetter,
                 @{Name="SizeGB";Expression = {$_.Size/1GB -as [int]}},
                 @{Name="FreeGB";Expression = {$_.SizeRemaining/1GB}},
@@ -57,14 +57,14 @@ Function Get-DiskInfo {
                 @{Name = "Computername";Expression = {$($_.PSComputername.toUpper())}} 
             }
             catch {
-                Add-Content -path $errorlog -Value "[$(Get-Date)] Failed to get disk data for drive $drive from $computername" -
+                Add-Content -path $errorlog -Value "[$(Get-Date)] Failed to get disk data for drive $drive from $computername"
                 Add-Content -path $errorlog -Value "[$(Get-Date)] $($_.exception.message)"
                 $newErrors = $True
             }
 
             $data
             #Force Cim disconnect
-            Get-CimSession -ComputerName $computer | Remove-CimSession -ErrorAction SilentlyContinue
+            Get-CimSession -ComputerName $computer -ea SilentlyContinue | Remove-CimSession -ErrorAction SilentlyContinue
         }
     }
     End {
@@ -75,3 +75,4 @@ Function Get-DiskInfo {
         Write-Verbose "Ending $($myinvocation.MyCommand)"
     }
 }
+
